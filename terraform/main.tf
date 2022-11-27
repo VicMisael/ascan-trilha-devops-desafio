@@ -14,142 +14,57 @@ provider "aws" {
 
 
 
-resource "aws_security_group" "web-node" {
-  name = "Security group"
-  description = "Web Security Group"
-  ingress {
-    from_port = 8080
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }    
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "aws_ecr_repository" "ascan_devops_repo" {
+  name = "ascan-devops-repo" # Naming my repository
 }
 
-resource "aws_iam_role" "ec2_role" {
-  name = "ec2_role"
+resource "aws_ecs_cluster" "ascan_devops_cluster" {
+  name = "my-cluster" # Naming the cluster
+}
 
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
+resource "aws_ecs_task_definition" "ascan_devops" {
+  family                   = "ascan_devops" # Naming our first task
+  container_definitions    = <<DEFINITION
+  [
     {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
+      "name": "ascan_devops",
+      "image": "${aws_ecr_repository.ascan_devops_repo.repository_url}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080
+        }
+      ],
+      "memory": 512,
+      "cpu": 256
     }
   ]
+  DEFINITION
+  requires_compatibilities = ["FARGATE"] # Stating that we are using ECS Fargate
+  network_mode             = "awsvpc"    # Using awsvpc as our network mode as this is required for Fargate
+  memory                   = 512         # Specifying the memory our container requires
+  cpu                      = 256         # Specifying the CPU our container requires
+  execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}"
 }
-EOF
 
-  tags = {
-      tag-key = "tag-value"
+resource "aws_iam_role" "ecsTaskExecutionRole" {
+  name               = "ecsTaskExecutionRole"
+  assume_role_policy = "${data.aws_iam_policy_document.assume_role_policy.json}"
+}
+
+data "aws_iam_policy_document" "assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
   }
 }
 
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2_profile"
-  role = "${aws_iam_role.ec2_role.name}"
-}
-
-resource "aws_iam_role_policy" "s3_policy" {
-  name = "s3_policy"
-  role = "${aws_iam_role.ec2_role.id}"
-
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectVersion",
-                "s3:ListBucket"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        }
-    ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "AmazonSSMManagedInstanceCore_policy_copy" {
-  name = "AmazonSSMManagedInstanceCore_policy_copy"
-  role = "${aws_iam_role.ec2_role.id}"
-
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ssm:DescribeAssociation",
-                "ssm:GetDeployablePatchSnapshotForInstance",
-                "ssm:GetDocument",
-                "ssm:DescribeDocument",
-                "ssm:GetManifest",
-                "ssm:GetParameter",
-                "ssm:GetParameters",
-                "ssm:ListAssociations",
-                "ssm:ListInstanceAssociations",
-                "ssm:PutInventory",
-                "ssm:PutComplianceItems",
-                "ssm:PutConfigurePackageResult",
-                "ssm:UpdateAssociationStatus",
-                "ssm:UpdateInstanceAssociationStatus",
-                "ssm:UpdateInstanceInformation"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ssmmessages:CreateControlChannel",
-                "ssmmessages:CreateDataChannel",
-                "ssmmessages:OpenControlChannel",
-                "ssmmessages:OpenDataChannel"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ec2messages:AcknowledgeMessage",
-                "ec2messages:DeleteMessage",
-                "ec2messages:FailMessage",
-                "ec2messages:GetEndpoint",
-                "ec2messages:GetMessages",
-                "ec2messages:SendReply"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-EOF
-}
-
-resource "aws_instance" "helloworld_instance" {
- ami = "ami-08c40ec9ead489470" // Ubuntu latest
- instance_type = "t2.micro" // Free Tier 
-   iam_instance_profile = "${aws_iam_instance_profile.ec2_profile.name}"
- tags = { 
- Name = "HelloWorld" 
- } 
- security_groups = ["${aws_security_group.web-node.name}"]
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
+  role       = "${aws_iam_role.ecsTaskExecutionRole.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
