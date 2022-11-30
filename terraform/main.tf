@@ -22,51 +22,41 @@ resource "aws_ecs_cluster" "ascan_devops_cluster" {
   name = "ascan_devops_cluster" # Naming the cluster
 }
 
-resource "aws_security_group" "web-node" {
-  vpc_id = aws_default_vpc.default_vpc.id
-  name = "Security group"
-  description = "Web Security Group"
-    ingress {
-    from_port = 80
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port = 8080
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }    
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-
 resource "aws_ecs_service" "ascan_devops_service" {
   name            = "ascan-devops-service"                             # Naming our first service
   cluster         = "${aws_ecs_cluster.ascan_devops_cluster.id}"             # Referencing our created Cluster
   task_definition = "${aws_ecs_task_definition.ascan_devops.arn}" # Referencing the task our service will spin up
   launch_type     = "FARGATE"
   desired_count   = 3 # Setting the number of containers we want deployed to 3
+
+    load_balancer {
+    target_group_arn = "${aws_lb_target_group.target_group.arn}" # Referencing our target group
+    container_name   = "${aws_ecs_task_definition.ascan_devops.family}"
+    container_port   = 8080 # Specifying the container port
+  }
     network_configuration {
     subnets          = ["${aws_default_subnet.default_subnet_a.id}", "${aws_default_subnet.default_subnet_b.id}", "${aws_default_subnet.default_subnet_c.id}"]
-    //security_groups = [ "${aws_security_group.web-node.id}" ]
     security_groups  = ["${aws_security_group.service_security_group.id}"]
     assign_public_ip = true # Providing our containers with public IPs
   }
 }
 
+
+resource "aws_security_group" "load_balancer_security_group" {
+  ingress {
+    from_port   = 80 # Allowing traffic in from port 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic in from all sources
+  }
+
+  egress {
+    from_port   = 0 # Allowing any incoming port
+    to_port     = 0 # Allowing any outgoing port
+    protocol    = "-1" # Allowing any outgoing protocol 
+    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic out to all IP addresses
+  }
+}
 
 resource "aws_security_group" "service_security_group" {
   ingress {
@@ -74,7 +64,7 @@ resource "aws_security_group" "service_security_group" {
     to_port   = 0
     protocol  = "-1"
     # Only allowing traffic in from the load balancer security group
-    security_groups = ["${aws_security_group.web-node.id}"]
+    security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
   }
 
   egress {
@@ -117,7 +107,7 @@ resource "aws_alb" "application_load_balancer" {
     "${aws_default_subnet.default_subnet_c.id}"
   ]
   # Referencing the security group
-  security_groups = ["${aws_security_group.web-node.id}"]
+    security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
 }
 
 resource "aws_ecs_task_definition" "ascan_devops" {
@@ -135,7 +125,7 @@ resource "aws_ecs_task_definition" "ascan_devops" {
         }
       ],
       "memory": 512,
-      "cpu": 256,
+      "cpu": 256
     }
 
   ]
