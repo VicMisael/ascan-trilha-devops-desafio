@@ -26,6 +26,12 @@ resource "aws_security_group" "web-node" {
   vpc_id = aws_default_vpc.default_vpc.id
   name = "Security group"
   description = "Web Security Group"
+    ingress {
+    from_port = 80
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   ingress {
     from_port = 8080
     to_port = 8080
@@ -130,15 +136,6 @@ resource "aws_ecs_task_definition" "ascan_devops" {
       ],
       "memory": 512,
       "cpu": 256,
-        "logConfiguration": {
-        "logDriver": "awslogs",
-              "options": {
-                  "awslogs-group": "firelens-container",
-                  "awslogs-region": "us-east-1",
-                  "awslogs-create-group": "true",
-                  "awslogs-stream-prefix": "firelens"
-                }   
-        }
     }
 
   ]
