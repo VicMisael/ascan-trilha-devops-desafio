@@ -69,5 +69,5 @@ jobs:
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ascan-devops-service
-        cluster: default
+        cluster: ascan_devops_cluster
         wait-for-service-stability: true

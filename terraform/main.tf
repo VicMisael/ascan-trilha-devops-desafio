@@ -19,7 +19,7 @@ resource "aws_ecr_repository" "ascan_devops_repo" {
 }
 
 resource "aws_ecs_cluster" "ascan_devops_cluster" {
-  name = "my-cluster" # Naming the cluster
+  name = "ascan_devops_cluster" # Naming the cluster
 }
 
 resource "aws_ecs_task_definition" "ascan_devops" {
