@@ -5,7 +5,16 @@
     {
       "dnsSearchDomains": null,
       "environmentFiles": null,
-      "logConfiguration": null,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+              "options": {
+                  "awslogs-group": "firelens-container",
+                  "awslogs-region": "us-east-1",
+                  "awslogs-create-group": "true",
+                  "awslogs-stream-prefix": "firelens"
+                }
+            
+      },
       "entryPoint": null,
       "portMappings": [
         {
