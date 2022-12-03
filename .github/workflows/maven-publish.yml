@@ -5,7 +5,7 @@ name: CI CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main,develop ]
   pull_request:
     branches: [ main ]
 
@@ -69,7 +69,7 @@ jobs:
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          task-definition: ${{ CI.steps.task-def.outputs.task-definition }}
           service: ascan-devops-service
           cluster: ascan_devops_cluster
           wait-for-service-stability: true
