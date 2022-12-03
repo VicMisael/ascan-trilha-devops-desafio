@@ -13,6 +13,10 @@ provider "aws" {
 }
 
 
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
+  role       = "${aws_iam_role.ecsTaskExecutionRole.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
 
 resource "aws_ecr_repository" "ascan_devops_repo" {
   name = "ascan-devops-repo" # Naming my repository
@@ -51,10 +55,10 @@ resource "aws_security_group" "load_balancer_security_group" {
   }
 
   egress {
-    from_port   = 0 # Allowing any incoming port
-    to_port     = 0 # Allowing any outgoing port
-    protocol    = "-1" # Allowing any outgoing protocol 
-    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic out to all IP addresses
+    from_port   = 0 
+    to_port     = 0 
+    protocol    = "-1" 
+    cidr_blocks = ["0.0.0.0/0"] 
   }
 }
 
@@ -63,15 +67,15 @@ resource "aws_security_group" "service_security_group" {
     from_port = 0
     to_port   = 0
     protocol  = "-1"
-    # Only allowing traffic in from the load balancer security group
+
     security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
   }
 
   egress {
-    from_port   = 0 # Allowing any incoming port
-    to_port     = 0 # Allowing any outgoing port
-    protocol    = "-1" # Allowing any outgoing protocol 
-    cidr_blocks = ["0.0.0.0/0"] # Allowing traffic out to all IP addresses
+    from_port   = 0
+    to_port     = 0 
+    protocol    = "-1" 
+    cidr_blocks = ["0.0.0.0/0"] 
   }
 }
 
@@ -80,7 +84,7 @@ resource "aws_lb_target_group" "target_group" {
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = "${aws_default_vpc.default_vpc.id}" # Referencing the default VPC
+  vpc_id      = "${aws_default_vpc.default_vpc.id}" 
   health_check {
     matcher = "200,301,302"
     path = "/alive"
@@ -88,25 +92,24 @@ resource "aws_lb_target_group" "target_group" {
 }
 
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = "${aws_alb.application_load_balancer.arn}" # Referencing our load balancer
+  load_balancer_arn = "${aws_alb.application_load_balancer.arn}" 
   port              = "80"
   protocol          = "HTTP"
   default_action {
     type             = "forward"
-    target_group_arn = "${aws_lb_target_group.target_group.arn}" # Referencing our tagrte group
+    target_group_arn = "${aws_lb_target_group.target_group.arn}"
   }
 }
 
 
 resource "aws_alb" "application_load_balancer" {
-  name               = "test-lb-tf" # Naming our load balancer
+  name               = "test-lb-tf" 
   load_balancer_type = "application"
-  subnets = [ # Referencing the default subnets
+  subnets = [ 
     "${aws_default_subnet.default_subnet_a.id}",
     "${aws_default_subnet.default_subnet_b.id}",
     "${aws_default_subnet.default_subnet_c.id}"
   ]
-  # Referencing the security group
     security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
 }
 
@@ -130,10 +133,10 @@ resource "aws_ecs_task_definition" "ascan_devops" {
 
   ]
   DEFINITION
-  requires_compatibilities = ["FARGATE"] # Stating that we are using ECS Fargate
-  network_mode             = "awsvpc"    # Using awsvpc as our network mode as this is required for Fargate
-  memory                   = 512         # Specifying the memory our container requires
-  cpu                      = 256         # Specifying the CPU our container requires
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"    
+  memory                   = 512        
+  cpu                      = 256         
   execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}"
 
 }
@@ -166,7 +169,3 @@ data "aws_iam_policy_document" "assume_role_policy" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
-  role       = "${aws_iam_role.ecsTaskExecutionRole.name}"
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
