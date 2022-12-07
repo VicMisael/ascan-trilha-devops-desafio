@@ -10,6 +10,9 @@ on:
     branches:
       - main
       - develop
+    
+  workflow_dispatch:
+    
 jobs:
   build:
 
@@ -29,13 +32,8 @@ jobs:
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn test
       
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: target
-        path: patrimoniomanager/target/*.jar
     - name: Configure AWS 
       uses: aws-actions/configure-aws-credentials@v1
       with:
