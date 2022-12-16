@@ -2,8 +2,11 @@
 
 Create the infrastructure to deploy a simple website (helloworld!) with a complete CI CD deploy to ECR and ECS services from Amazon AWS
 
-## Table Of Contantes
+## Table Of Contents
 * [How to Use](#how-to-use)
+
+##
+Docker - Terraform - Spring boot - Java AWS - ECS - ECR
 
 
 ## How to use
