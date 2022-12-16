@@ -110,7 +110,7 @@ resource "aws_lb_listener" "listener" {
 
 
 resource "aws_alb" "application_load_balancer" {
-  name               = "test-lb-tf" 
+  name               = "ascan-load-balancer" 
   load_balancer_type = "application"
   subnets = [ 
     "${aws_default_subnet.default_subnet_a.id}",
