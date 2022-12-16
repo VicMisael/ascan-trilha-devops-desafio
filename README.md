@@ -19,7 +19,11 @@ Docker - Terraform - Spring boot - Java AWS - ECS - ECR
 
 
 ### Setting up the Cloud environment
-
+#### Running locally
+```sh
+$ docker build -t helloworld .
+$ docker run -p 8080:8080 helloworld
+```
 #### Export your AWS Credentials
 
 ```sh
